@@ -1,0 +1,41 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+    <script src="https://code.jquery.com/jquery-1.12.1.min.js"></script>
+    <script src="https://www.govmap.gov.il/govmap/api/govmap.api.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function ()
+        {
+            govmap.createMap('map', 
+                {
+                    token: '5a4b8472-b95b-4687-8179-0ccb621c7990',
+                    layers: ["SUB_GUSH_ALL"],
+                    showXY: true,
+                    identifyOnClick: true,
+                    isEmbeddedToggle: false,
+                    background: "1",
+                    layersMode: 1,
+                    zoomButtons:false
+                });
+        });
+
+        function showExample(){
+            var wkt = 'POLYGON((167126.5939715321 624580.483296493, 167126.8439715321 624581.233296493, 167127.5939715321 624581.483296493, 167128.3439715321 624581.233296493, 167128.5939715321 624580.483296493, 167128.3439715321 624579.733296493, 167127.5939715321 624579.483296493, 167126.8439715321 624579.733296493, 167126.5939715321 624580.483296493))';
+            var params = {  
+                    geometry: wkt, //point: {x: 167127.5939715321,  y: 624580.483296493},  // need wkt polygon...
+                    layerName: "SUB_GUSH_ALL",  
+                    fields: ['GUSH_NUM']  
+                    }
+        
+            govmap.intersectFeatures(params).then(function (response)  
+                    {  
+                        console.log(response)
+                        alert(response.data[0].Values[0])
+                    }); 
+        }
+</script>
+ </head>
+ <body>
+    <div id="map" style="width:600px;height:600px"></div>
+    <button onClick="showExample()">Intersect Gush</button>
+ </body>
+</html>
