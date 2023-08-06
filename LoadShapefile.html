@@ -1,0 +1,367 @@
+
+<html style='width:100%; height:100%;'>
+    <head>
+		<title>Govmap Load Shp</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/> 
+		
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+  <script language="javascript" type="text/javascript" src="https://www.govmap.gov.il/govmap/api/govmap.api.js" ></script>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"></script>
+  <script src="https://cdn.rawgit.com/calvinmetcalf/shapefile-js/gh-pages/dist/shp.js"></script>
+  <script src="https://cdn.rawgit.com/calvinmetcalf/leaflet.shapefile/gh-pages/leaflet.shpfile.js"></script>
+
+  <script src="https://unpkg.com/terraformer@1.0.8"></script>
+  <script src="https://unpkg.com/terraformer-wkt-parser@1.1.2"></script>
+
+  <script type="text/javascript">
+
+		var data;
+
+		var my_token = "5a4b8472-b95b-4687-8179-0ccb621c7990";
+		//var my_token = "34280469-d493-4041-95e5-664f7fec6daf";
+
+		
+function degreesToRadians(degrees) {
+	  return degrees * Math.PI / 180;
+	}
+
+	function pow2(x) {
+	  return x*x;
+	}
+
+	function pow3(x) {
+	  return x*x*x;
+	}
+
+	function pow4(x) {
+	  return x*x*x*x;
+	}
+
+	function ITMLocation(easting, northing) {
+	  this.easting = easting;
+	  this.northing = northing;
+	  this.eastingInOldGrid = function() {
+		return easting - 50000;
+	  }
+	  this.northingInOldGrid = function() {
+		var retval = northing - 500000;
+		if (retval<0) {
+		  retval += 1000000;
+		}
+		return retval;
+	  }
+	}
+	
+	function Wgs84ToIsraeLtm(lat_lon_pair)
+	{
+				if (lat_lon_pair[0] < 100 && lat_lon_pair[1] < 100){
+					longitude = lat_lon_pair[0];
+					latitude = 	lat_lon_pair[1];
+					longitude = degreesToRadians(longitude);
+					latitude = degreesToRadians(latitude);
+					// Projection parameters
+					var centralMeridian = degreesToRadians(35.2045169444444);  // central meridian of ITM projection
+					var k0 = 1.0000067;  // scale factor
+
+					// Ellipsoid constants (WGS 80 datum)
+					var a = 6378137;  // equatorial radius
+					var b = 6356752.3141; // polar radius
+					var e = Math.sqrt(1 - b*b/a/a);  // eccentricity
+					var e1sq = e*e/(1-e*e);
+					var n = (a-b)/(a+b);
+
+					// Curvature at specified location
+					var tmp = e*Math.sin(latitude);
+					var nu = a/Math.sqrt(1 - tmp*tmp);
+
+					// Meridional arc length
+					var n3 = pow3(n);
+					var n4 = pow4(n);
+					var A0 = a*(1-n+(5*n*n/4)*(1-n) +(81*n4/64)*(1-n));
+					var B0 = (3*a*n/2)*(1 - n - (7*n*n/8)*(1-n) + 55*n4/64);
+					var C0 = (15*a*n*n/16)*(1 - n +(3*n*n/4)*(1-n));
+					var D0 = (35*a*n3/48)*(1 - n + 11*n*n/16);
+					var E0 = (315*a*n4/51)*(1-n);
+					var S = A0*latitude - B0*Math.sin(2*latitude) + C0*Math.sin(4*latitude)
+					- D0*Math.sin(6*latitude) + E0*Math.sin(8*latitude);
+
+					// Coefficients for ITM coordinates
+					var p = longitude-centralMeridian;
+					var Ki = S*k0;
+					var Kii = nu*Math.sin(latitude)*Math.cos(latitude)*k0/2;
+					var Kiii = ((nu*Math.sin(latitude)*pow3(Math.cos(latitude)))/24)*(5-pow2(Math.tan(latitude))+9*e1sq*pow2(Math.cos(latitude))+4*e1sq*e1sq*pow4(Math.cos(latitude)))*k0;
+					var Kiv = nu*Math.cos(latitude)*k0;
+					var Kv = pow3(Math.cos(latitude))*(nu/6)*(1-pow2(Math.tan(latitude))+e1sq*pow2(Math.cos(latitude)))*k0;
+
+					var x = Math.round(219529.58+ Kiv*p+Kv*pow3(p) - 60);
+					var y = Math.round(Ki+Kii*p*p+Kiii*pow4(p) - 3512424.41+ 626907.39 - 45);
+					var xy_pair = [x, y];
+					return xy_pair;
+				}
+				else{
+					return lat_lon_pair;
+				}
+				
+	}
+
+	//More info: https://developer.mozilla.org/en-US/docs/Web/API/FileReader
+	function handleZipFile(file){
+		//alert(file);
+		var reader = new FileReader();
+	  reader.onload = function(){
+		  if (reader.readyState != 2 || reader.error){
+			  return;
+		  } else {
+			  convertToLayer(reader.result);
+		}
+	  }
+	  reader.readAsArrayBuffer(file);
+	}
+
+	var geoJson 
+	function convertToLayer(buffer){
+		shp(buffer).then(function(geojson){	//More info: https://github.com/calvinmetcalf/shapefile-js
+			var shpfile = new L.Shapefile(geojson);
+			//alert(shpfile.toGeoJSON().features.length + " ישויות בשכבה");
+			if (shpfile.toGeoJSON().features.length > 0)
+			{
+				geoJson = shpfile.toGeoJSON();
+				var wkts = [];
+				if (geoJson.features[0].geometry.type == "Point")
+				{
+					for (i = 0; i < geoJson.features.length; i++)
+					{
+						var latitude = geoJson.features[i].geometry.coordinates[1];
+						var longitude = geoJson.features[i].geometry.coordinates[0];
+						if (geoJson.features[i].geometry.coordinates[1] < 100)
+						{
+							xy_pair = Wgs84ToIsraeLtm([longitude, latitude]);
+							x = xy_pair[0];
+							y = xy_pair[1];
+						}
+						else
+						{
+							x = latitude;
+							y = longitude;
+						}
+						wkts.push('POINT('+x+' '+y+')');
+						//'POINT(196062.48 621458.39)'
+						//console.log(x + " " + y);
+					}
+					
+					var data = {	  
+						'wkts': wkts,  
+						'names': ['p1'],  
+						'geometryType': govmap.drawType.Point,  
+						'defaultSymbol':  
+						{  
+							'url':'http://www.creatingonline.com/webmaster/free_bullets/greenbullet1.gif',  
+							'width':15,  
+							'height':15  
+						},  
+						'symbols': [],  
+						'clearExisting':false,  
+						'data': {  
+						}  
+					};  
+					govmap.displayGeometries(data).then(function (e)  
+					{ 
+						console.log("points created");
+					});
+				}
+				if (geoJson.features[0].geometry.type == "LineString")
+				{
+					for (i = 0; i < geoJson.features.length; i++)
+					{
+						var coordinates = geoJson.features[i].geometry.coordinates;
+						var linestring = "LINESTRING(";
+						for (c = 0 ; c < coordinates.length; c++)
+						{
+							var latitude = coordinates[c][1];
+							var longitude = coordinates[c][0];
+							
+							if (latitude < 100)
+							{
+								xy_pair = Wgs84ToIsraeLtm([longitude, latitude]);
+								x = xy_pair[0] + 55;
+								y = xy_pair[1] + 45;
+							}
+							else
+							{
+								x = latitude + 55;
+								y = longitude + 45;
+							}
+							linestring = linestring + x + " " + y + ", ";
+						}
+						linestring_r = linestring.substring(0, linestring.length - 1);
+						linestring_r =linestring_r + ")";
+						wkts.push(linestring_r);
+						//LINESTRING(181638.5702018566 691584.9075372377, 230586.58476455236 683382.807799705)',  
+
+						//console.log(linestring_r);
+					}
+					
+					var data = {	  
+						'wkts': wkts,  
+						'names': ['p1'],  
+						'geometryType': govmap.drawType.Polyline,  
+						'defaultSymbol':  
+						{  
+							'color': [255, 0, 0, 1],  
+							'width': 1,  
+						},  
+						'symbols': [],  
+						'clearExisting':false,  
+						'data': { 
+						}  
+					};  
+					govmap.displayGeometries(data).then(function (e)  
+					{ 
+						console.log("points created");
+					});
+				}
+				if (geoJson.features[0].geometry.type == "Polygon")
+				{
+					for (i = 0; i < geoJson.features.length; i++)
+					{
+						var parts = geoJson.features[i].geometry.coordinates;
+						var linestring = "POLYGON((";
+						for (pr = 0; pr < parts.length; pr++)
+						{
+							coordinates = parts[pr]
+							for (p = 0; p < coordinates.length; p++)
+							{
+
+									var latitude = coordinates[p][1];
+									var longitude = coordinates[p][0];
+									
+									if (latitude < 100)
+									{
+										xy_pair = Wgs84ToIsraeLtm([longitude, latitude]);
+										x = xy_pair[0] + 55;
+										y = xy_pair[1] + 45;
+									}
+									else
+									{
+										x = latitude + 55;
+										y = longitude + 45;
+									}
+									linestring = linestring + x + " " + y + ", ";
+
+							}
+						}
+						linestring_r = linestring.substring(0, linestring.length - 1);
+						linestring_r =linestring_r + "))";
+						wkts.push(linestring_r);
+						//LINESTRING(181638.5702018566 691584.9075372377, 230586.58476455236 683382.807799705)',  
+
+						//console.log(linestring_r);
+					}
+					
+					var data = {	  
+						'wkts': wkts,  
+						'names': ['p1'],  
+						'geometryType': govmap.drawType.Polygon,  
+						'defaultSymbol':  
+						{  
+		                    'outlineColor': [0, 0, 255, 1],  
+	                        'outlineWidth': 1,  
+	                        'fillColor': [0, 255, 0, 0.5]  
+
+						},  
+						'symbols': [],  
+						'clearExisting':false,  
+						'data': { 
+						}  
+					};  
+					govmap.displayGeometries(data).then(function (e)  
+					{ 
+						console.log("layer created");
+					});
+				}
+			}
+		});
+	}
+
+	
+	function addToMap()
+	{
+		var files = document.getElementById('file').files;
+			if (files.length == 0) {
+				return; //do nothing if no file given yet
+		}
+			
+		var file = files[0];
+			
+		if (file.name.slice(-3) != 'zip'){ //Demo only tested for .zip. All others, return.
+			console.log('error')
+			return;
+		} 
+		else {
+			handleZipFile(file);
+
+		}
+	}
+		
+		$(document).ready(function ()
+        {
+	            govmap.createMap('map_div',
+	                {
+                    token: my_token,
+					//user_token: "ca2048da-bece-44d6-8576-ea35ddfa2f76",
+                    //visibleLayers: ["KALPI_NEGISHUT", "GASSTATIONS", "DIVUCHIM2017"],
+					visibleLayers: ["moch_regeneration_sub", "moch_tama_38_point"],
+					layers: ["moch_regeneration_sub", "moch_tama_38_point"],
+					layersMode: 2,
+					//isEmbeddedToggle: false,
+					showXY: true,
+					center: {x: 217009, y: 708689},// {x: 180996, y: 663402},
+					level: 5,
+                    identifyOnClick: true
+					});
+
+		});
+		//var token = "34280469-d493-4041-95e5-664f7fec6daf";
+		var jsonObj;
+		var li = [];
+		var s_wkts = [];
+		var s_names = [];
+		var s_symbols = [];
+
+		
+		
+		
+		
+			
+</script>
+</head>
+<body>
+
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="#">Govmap Load Geojson</a>
+    </div>
+    <ul class="nav navbar-nav">
+      <li><input id="file" type="file" class="btn btn-default btn-file" type="file" name="foo" onchange='addToMap(this)' /></li>
+    </ul>
+  </div>
+</nav>
+  
+            
+<form name="form" style='height: 100%;' scrolling='no'> 
+                        
+	<div id="map_div" style="width: 100%; height: 100%; float:left">
+			
+			
+	</div> 			
+</form>
+
+</body>
+</html>
