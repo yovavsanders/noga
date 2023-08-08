@@ -1,0 +1,594 @@
+
+<html xmlns="https://www.w3.org/1999/xhtml">
+
+<head>
+	<title>נוגה חיתוך לפי פוליגון</title>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width = device-width,
+              initial-scale = 1" />
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+  <script src="https://code.jquery.com/jquery-1.12.1.min.js"></script>
+
+    <script src="https://www.govmap.gov.il/govmap/api/govmap.api.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"></script>
+    <script src="https://cdn.rawgit.com/calvinmetcalf/shapefile-js/gh-pages/dist/shp.js"></script>
+    <script src="https://cdn.rawgit.com/calvinmetcalf/leaflet.shapefile/gh-pages/leaflet.shpfile.js"></script>
+
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+</head>
+
+<body scrolling='no' dir="rtl">
+  <div id="app">
+    <v-app>
+      <v-main>
+        
+        <v-app-bar
+        elevation="4"
+    >
+       <v-row>
+            <v-col >
+                <v-tooltip bottom>
+                    <template v-slot:activator="{ on, attrs }">
+                        <v-btn
+                            class="mx-2"
+                            fab
+                            dark
+                            small
+                            color="primary"
+                            v-bind="attrs"
+                            v-on="on"
+                            @click="drawPolygon()"
+                            >
+                            <v-icon dark>
+                            mdi-shape-polygon-plus
+                            </v-icon>
+                        </v-btn>
+                    </template>
+                    <span>שרטט פוליגון</span>
+                </v-tooltip>
+
+                <v-tooltip>
+                    <template v-slot:activator="{ on, attrs }">
+                    <v-btn  v-on="on"
+                      @click="addLayer()" 
+                      absolute
+                      dark
+                      fab
+                      small
+                      color="primary"
+                      v-bind="attrs"
+                      v-on="on"
+                    >
+                      <v-icon>mdi-layers-plus</v-icon>
+                    </v-btn>
+                    </template>
+                    <span>הוספת שכבת משתמש (פורמט Shp.Zip)</span>
+                </v-tooltip>
+            </v-col>
+
+            <v-toolbar-title style="text-align: center; width:50%; margin-top: 18px;">נגה - בדיקת תכניות לפי תיחום</v-toolbar-title>
+
+
+            <v-col >
+            </v-col>
+
+           
+
+       </v-row>
+    </v-app-bar>
+
+       
+       
+
+       
+
+        <v-container>
+
+
+            <v-row  justify="center" align="center">
+                <v-col id="1" cols="12"  xs="12" sm="12" md="12" style="max-height: 750px;">
+                        <v-card style="background-color: #ffffff !important;
+                        border: 5px solid #01579B !important; margin-bottom:25px; margin: 25px;" id = "map" height="600px"></v-card>
+                </v-col>
+                <v-col id="2" cols="12"  xs="12" sm="12" md="12" style="max-height: 750px;">
+                        <v-card style="background-color: #ffffff !important;
+                        border: 5px solid #01579B !important; margin-bottom:25px; margin: 25px;" id = "table">
+                        <v-card-title>תכניות בתיחום</v-card-title>
+                        <v-card-text style="max-height: 510px; overflow-y: auto;">
+                            <v-data-table
+                            :headers="headers"
+                            :items="plans"
+                            class="sticky-table"
+                            >
+                            </v-data-table>
+                            <template v-slot:top>
+                                <thead>
+                                  <tr>
+                                    <th
+                                      v-for="header in headers"
+                                      :key="header.text"
+                                      class="sticky-header"
+                                    >
+                                      {{ header.text }}
+                                    </th>
+                                  </tr>
+                                </thead>
+                              </template>
+                              <template v-slot:footer>
+                                <tfoot>
+                                  <tr>
+                                    <td colspan="6" class="sticky-footer">
+                                      Footer content
+                                    </td>
+                                  </tr>
+                                </tfoot>
+                              </template>
+                        </v-card-text>
+                    </v-card>
+
+                </v-col>     
+            </v-row> 
+
+
+            
+    <v-dialog
+        v-model="file_input_dialog"
+        width="500"
+        >
+        <v-card>
+            <v-card-title center
+            class="headline grey lighten-4"
+            primary-title
+            >
+                בחר קובץ shp מכווץ ל zip
+            </v-card-title>
+    
+            <v-divider></v-divider>
+            <input type="file" id="file"> 
+            <v-divider></v-divider>
+            <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn
+                color="green"
+                text
+                @click="addToMap()"
+            >
+                אישור
+            </v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
+
+
+      <v-snackbar color="success"
+        v-model = "alert"
+        :timeout="2000"
+        transition="scale-transition"
+        >
+            {{feat_added_cnt}}  ישויות נוספו בהצלחה
+        </v-snackbar>
+
+        </v-container>
+      </v-main>
+    </v-app>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+  <script>
+
+
+
+function degreesToRadians(degrees) {
+	  return degrees * Math.PI / 180;
+	}
+
+	function pow2(x) {
+	  return x*x;
+	}
+
+	function pow3(x) {
+	  return x*x*x;
+	}
+
+	function pow4(x) {
+	  return x*x*x*x;
+	}
+
+	function ITMLocation(easting, northing) {
+	  this.easting = easting;
+	  this.northing = northing;
+	  this.eastingInOldGrid = function() {
+		return easting - 50000;
+	  }
+	  this.northingInOldGrid = function() {
+		var retval = northing - 500000;
+		if (retval<0) {
+		  retval += 1000000;
+		}
+		return retval;
+	  }
+	}
+	
+	function Wgs84ToIsraeLtm(lat_lon_pair)
+	{
+				longitude = lat_lon_pair[0];
+				latitude = 	lat_lon_pair[1];
+				longitude = degreesToRadians(longitude);
+				latitude = degreesToRadians(latitude);
+				// Projection parameters
+				var centralMeridian = degreesToRadians(35.2045169444444);  // central meridian of ITM projection
+				var k0 = 1.0000067;  // scale factor
+
+				// Ellipsoid constants (WGS 80 datum)
+				var a = 6378137;  // equatorial radius
+				var b = 6356752.3141; // polar radius
+				var e = Math.sqrt(1 - b*b/a/a);  // eccentricity
+				var e1sq = e*e/(1-e*e);
+				var n = (a-b)/(a+b);
+
+				// Curvature at specified location
+				var tmp = e*Math.sin(latitude);
+				var nu = a/Math.sqrt(1 - tmp*tmp);
+
+				// Meridional arc length
+				var n3 = pow3(n);
+				var n4 = pow4(n);
+				var A0 = a*(1-n+(5*n*n/4)*(1-n) +(81*n4/64)*(1-n));
+				var B0 = (3*a*n/2)*(1 - n - (7*n*n/8)*(1-n) + 55*n4/64);
+				var C0 = (15*a*n*n/16)*(1 - n +(3*n*n/4)*(1-n));
+				var D0 = (35*a*n3/48)*(1 - n + 11*n*n/16);
+				var E0 = (315*a*n4/51)*(1-n);
+				var S = A0*latitude - B0*Math.sin(2*latitude) + C0*Math.sin(4*latitude)
+				- D0*Math.sin(6*latitude) + E0*Math.sin(8*latitude);
+
+				// Coefficients for ITM coordinates
+				var p = longitude-centralMeridian;
+				var Ki = S*k0;
+				var Kii = nu*Math.sin(latitude)*Math.cos(latitude)*k0/2;
+				var Kiii = ((nu*Math.sin(latitude)*pow3(Math.cos(latitude)))/24)*(5-pow2(Math.tan(latitude))+9*e1sq*pow2(Math.cos(latitude))+4*e1sq*e1sq*pow4(Math.cos(latitude)))*k0;
+				var Kiv = nu*Math.cos(latitude)*k0;
+				var Kv = pow3(Math.cos(latitude))*(nu/6)*(1-pow2(Math.tan(latitude))+e1sq*pow2(Math.cos(latitude)))*k0;
+
+				var x = Math.round(219529.58+ Kiv*p+Kv*pow3(p) - 60);
+				var y = Math.round(Ki+Kii*p*p+Kiii*pow4(p) - 3512424.41+ 626907.39 - 45);
+				var xy_pair = [x, y];
+				return xy_pair;
+	}
+
+	//More info: https://developer.mozilla.org/en-US/docs/Web/API/FileReader
+	function handleZipFile(file){
+		//alert(file);
+		var reader = new FileReader();
+	  reader.onload = function(){
+		  if (reader.readyState != 2 || reader.error){
+			  return;
+		  } else {
+			  convertToLayer(reader.result);
+		}
+	  }
+	  reader.readAsArrayBuffer(file);
+	}
+
+	var geoJson 
+	function convertToLayer(buffer){
+		shp(buffer).then(function(geojson){	//More info: https://github.com/calvinmetcalf/shapefile-js
+			var shpfile = new L.Shapefile(geojson);
+			//alert(shpfile.toGeoJSON().features.length + " ישויות בשכבה");
+			if (shpfile.toGeoJSON().features.length > 0)
+			{
+				geoJson = shpfile.toGeoJSON();
+				var wkts = [];
+                myVue.table_key = 0;
+                myVue.oid_string = "";
+				if (geoJson.features[0].geometry.type == "Point")
+				{
+					for (i = 0; i < geoJson.features.length; i++)
+					{
+						var latitude = geoJson.features[i].geometry.coordinates[1];
+						var longitude = geoJson.features[i].geometry.coordinates[0];
+						if (geoJson.features[i].geometry.coordinates[1] < 100)
+						{
+							xy_pair = Wgs84ToIsraeLtm([longitude, latitude]);
+							x = xy_pair[0];
+							y = xy_pair[1];
+						}
+						else
+						{
+							x = latitude;
+							y = longitude;
+						}
+						wkts.push('POINT('+x+' '+y+')');
+						//'POINT(196062.48 621458.39)'
+						//console.log(x + " " + y);
+					}
+					
+					var data = {	  
+						'wkts': wkts,  
+						'names': ['p1'],  
+						'geometryType': govmap.drawType.Point,  
+						'defaultSymbol':  
+						{  
+							'url':'http://www.creatingonline.com/webmaster/free_bullets/greenbullet1.gif',  
+							'width':15,  
+							'height':15  
+						},  
+						'symbols': [],  
+						'clearExisting':false,  
+						'data': {  
+						}  
+					};  
+					govmap.displayGeometries(data).then(function (e)  
+					{ 
+						console.log("points created");
+					});
+				}
+				if (geoJson.features[0].geometry.type == "LineString")
+				{
+					for (i = 0; i < geoJson.features.length; i++)
+					{
+						var coordinates = geoJson.features[i].geometry.coordinates;
+						var linestring = "LINESTRING(";
+						for (c = 0 ; c < coordinates.length; c++)
+						{
+							var latitude = coordinates[c][1];
+							var longitude = coordinates[c][0];
+							
+							if (latitude < 100)
+							{
+								xy_pair = Wgs84ToIsraeLtm([longitude, latitude]);
+								x = xy_pair[0] + 55;
+								y = xy_pair[1] + 45;
+							}
+							else
+							{
+								x = latitude + 55;
+								y = longitude + 45;
+							}
+							linestring = linestring + x + " " + y + ", ";
+						}
+						linestring_r = linestring.substring(0, linestring.length - 1);
+						linestring_r =linestring_r + ")";
+						wkts.push(linestring_r);
+						//LINESTRING(181638.5702018566 691584.9075372377, 230586.58476455236 683382.807799705)',  
+
+						//console.log(linestring_r);
+					}
+					
+					var data = {	  
+						'wkts': wkts,  
+						'names': ['p1'],  
+						'geometryType': govmap.drawType.Polyline,  
+						'defaultSymbol':  
+						{  
+							'color': [255, 0, 0, 1],  
+							'width': 1,  
+						},  
+						'symbols': [],  
+						'clearExisting':false,  
+						'data': { 
+						}  
+					};  
+					govmap.displayGeometries(data).then(function (e)  
+					{ 
+						console.log("points created");
+					});
+				}
+				if (geoJson.features[0].geometry.type == "Polygon")
+				{
+                    myVue.table_key = 0;
+					for (i = 0; i < geoJson.features.length; i++)
+					{
+						var parts = geoJson.features[i].geometry.coordinates;
+						var linestring = "POLYGON((";
+						for (pr = 0; pr < parts.length; pr++)
+						{
+							coordinates = parts[pr]
+							for (p = 0; p < coordinates.length; p++)
+							{
+
+									var latitude = coordinates[p][1];
+									var longitude = coordinates[p][0];
+									
+									if (latitude < 100)
+									{
+										xy_pair = Wgs84ToIsraeLtm([longitude, latitude]);
+										x = xy_pair[0] + 55;
+										y = xy_pair[1] + 45;
+									}
+									else
+									{
+										x = latitude + 55;
+										y = longitude + 45;
+									}
+									linestring = linestring + x + " " + y + ", ";
+
+							}
+						}
+						linestring_r = linestring.substring(0, linestring.length - 1);
+						linestring_r =linestring_r + "))";
+                        linestring_r = linestring_r.replace(',))', '))')
+						wkts.push(linestring_r.replace(',))', '))'));
+                        console.log(linestring_r);
+                        
+                        myVue.getPlans(linestring_r);
+                       
+					}
+					
+					var data = {	  
+						'wkts': wkts,  
+						'names': ['p1'],  
+						'geometryType': govmap.drawType.Polygon,  
+						'defaultSymbol':  
+						{  
+		                    'outlineColor': [0, 0, 255, 1],  
+	                        'outlineWidth': 1,  
+	                        'fillColor': [0, 255, 0, 0.5]  
+
+						},  
+						'symbols': [],  
+						'clearExisting':false,  
+						'data': { 
+						}  
+					};  
+					govmap.displayGeometries(data).then(function (e)  
+					{ 
+						console.log("layer created");
+                    });
+                    
+				}
+				//appVue.file_input_dialog = false;
+				myVue.feat_added_cnt = shpfile.toGeoJSON().features.length;
+				myVue.alert = true;
+				myVue.file_input_dialog = false;
+			}
+		});
+	}
+
+
+
+    const myVue = new Vue({
+        el: '#app',
+        vuetify: new Vuetify(),
+
+        data: () => ({
+            headers: [
+                { text: 'מספר רץ', value: 'id' },
+                { text: 'מספר מזהה', value: 'oid' },
+                { text: 'שם תכנית', value: 'plan' },
+            ],
+            wkt: "",
+            plans : [],
+            file_input_dialog: false,
+            feat_added_cnt: 0,
+            alert: false,
+            table_key: 0,
+            oid_string: "",
+        }),
+
+        methods: {
+
+            addToMap()
+            {
+                var files = document.getElementById('file').files;
+                    if (files.length == 0) {
+                        return; //do nothing if no file given yet
+                }
+                    
+                var file = files[0];
+                    
+                if (file.name.slice(-3) != 'zip'){ //Demo only tested for .zip. All others, return.
+                    this.error_alert = true; 	
+                    return;
+                } 
+                else {
+                    handleZipFile(file);
+
+                }
+            },
+
+
+            addLayer()
+            {
+                this.feat_added_cnt = 0;
+                this.file_input_dialog = true;
+            },
+
+            drawPolygon(){
+                
+                govmap.draw(govmap.drawType.Polygon).progress(function (response)  
+                {  
+                    myVue.oid_string = "";
+                    myVue.plans = [];
+                    myVue.table_key = 0;
+                    var wkt = response.wkt;
+                    myVue.wkt = wkt;
+                    console.log(wkt);
+                    myVue.getPlans(wkt);
+                });
+            },
+
+            async getPlans(wkt){
+                var params ={ 
+                            layerName: 'RETZEFGVULOT',
+                            whereClause: 'OBJECTID > 0',
+                            zoomToExtent: false 
+                        }
+                govmap.filterLayers(params); 
+                var params = {  
+                    geometry: wkt, // need wkt polygon...
+                    layerName: "RETZEFGVULOT",  
+                    fields: ['TOCHNIT']  
+                }
+
+                govmap.setVisibleLayers([], ['RETZEFGVULOT']);
+            
+                const planData = await govmap.intersectFeatures(params);
+                console.log(planData);
+
+                
+                
+                if (planData.data.length > 0){
+                    for (i = 0; i < planData.data.length; i++){
+                        myVue.table_key = myVue.table_key + 1;
+                        var plan = planData.data[i].Values[0];
+                        var oid = planData.data[i].ObjectId;
+                        this.oid_string = this.oid_string + oid + ",";
+                        var id = myVue.table_key;
+
+                        const obj = {
+                            id: id ,
+                            oid: oid,
+                            plan: plan
+                        }
+                        this.plans.push(obj);
+                    }
+                    myVue.oid_string = myVue.oid_string.substring(0, this.oid_string.length - 1);
+                    console.log(myVue.oid_string)
+                    if (myVue.oid_string != ""){
+                        var params ={ 
+                            layerName: 'RETZEFGVULOT',
+                            whereClause: 'OBJECTID IN ('+myVue.oid_string+')',
+                            zoomToExtent: true 
+                        }
+                        govmap.filterLayers(params); 
+                    }
+                    
+                }
+                else{
+                    myVue.plans = [];
+                    myVue.table_key = 0;
+                }
+               
+
+            }
+            
+        },
+        mounted() {
+            govmap.createMap('map', 
+                {
+                    token: '5a4b8472-b95b-4687-8179-0ccb621c7990',
+                    layers: ["RETZEFGVULOT"],
+                    showXY: true,
+                    identifyOnClick: true,
+                    isEmbeddedToggle: false,
+                    background: 0,
+                    layersMode: 0,
+                    zoomButtons:true
+                });
+        }
+    })
+  </script>
+</body>
+
+
+</html>
