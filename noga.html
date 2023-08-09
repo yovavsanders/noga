@@ -480,9 +480,16 @@ function degreesToRadians(degrees) {
         data: () => ({
             token: "5a4b8472-b95b-4687-8179-0ccb621c7990",
             headers: [
-                { text: 'מספר רץ', value: 'id' },
+                { text: 'מספר סידורי', value: 'id' },
                 { text: 'מספר מזהה', value: 'oid' },
                 { text: 'שם תכנית', value: 'plan' },
+                { text: 'תאריך תוקף', value: 'taarihtokef'},
+                { text: 'מספר הסבה', value: 'mis_hasava'},
+                { text: 'שם ישוב', value: 'shem_ishuv'},
+                { text: 'סוג', value: 'sug'},
+                { text: 'כמות מגרשים', value: 'sum_migr'},
+                { text: 'סוג משנה', value: 'sum_mishne'},
+                { text: 'תאריך רצף', value: 'retzefdate'},
             ],
             wkt: "",
             plans : [],
@@ -494,17 +501,13 @@ function degreesToRadians(degrees) {
         }),
 
         methods: {
+          
           handleClick(value) {
               //this.highlightClickedRow(value);
               console.log('handleClick', value);
               // select feature on map
               govmap.searchInLayer({ 'layerName': 'RETZEFGVULOT', 'fieldName': 'OBJECTID', 'fieldValues': [value.oid], 'highlight': true, 'outLineColor': [255, 0, 0, 1], 'fillColor': [0, 255, 0, 0.5]});
               // set active row and deselect others
-          },
-          highlightClickedRow(value) {
-            console.log(value);
-              const tr = value.target.parentNode;
-              tr.classList.add('highlight');
           },
           downloadExcel() {
               var col = [];
@@ -609,7 +612,7 @@ function degreesToRadians(degrees) {
                 var params = {  
                     geometry: wkt, // need wkt polygon...
                     layerName: "RETZEFGVULOT",  
-                    fields: ['TOCHNIT']  
+                    fields: ['TOCHNIT', 'MISHASAVA', 'SHEMISHUV', 'SUG', 'SUMMIGR', 'SUMMISHNE', 'TAARIHTOKEF', 'RETZEFDATE']  
                 }
 
                 govmap.setVisibleLayers([], ['RETZEFGVULOT']);
@@ -623,6 +626,14 @@ function degreesToRadians(degrees) {
                     for (i = 0; i < planData.data.length; i++){
                         myVue.table_key = myVue.table_key + 1;
                         var plan = planData.data[i].Values[0];
+                        // ['TOCHNIT', 'MISHASAVA', 'SHEMISHUV', 'SUG', 'SUMMIGR', 'SUMMISHNE']  
+                        var mis_hasava = planData.data[i].Values[1];
+                        var shem_ishuv = planData.data[i].Values[2];
+                        var sug = planData.data[i].Values[3];
+                        var sum_migr = planData.data[i].Values[4];
+                        var sum_mishne = planData.data[i].Values[5];
+                        var taarihtokef= planData.data[i].Values[6];
+                        var retzefdate = planData.data[i].Values[7];
                         var oid = planData.data[i].ObjectId;
                         this.oid_string = this.oid_string + oid + ",";
                         var id = myVue.table_key;
@@ -630,8 +641,17 @@ function degreesToRadians(degrees) {
                         const obj = {
                             id: id ,
                             oid: oid,
-                            plan: plan
+                            plan: plan,
+                            taarihtokef: taarihtokef.split('T', 1)[0],
+                            mis_hasava: mis_hasava,
+                            shem_ishuv: shem_ishuv,
+                            sug: sug,
+                            sum_migr: sum_migr,
+                            sum_mishne: sum_mishne,
+                            retzefdate: retzefdate.split('T', 1)[0]
+
                         }
+                        console.log(taarihtokef);
                         this.plans.push(obj);
                     }
                     myVue.oid_string = myVue.oid_string.substring(0, this.oid_string.length - 1);
