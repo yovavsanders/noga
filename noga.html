@@ -145,6 +145,8 @@
                             :headers="headers"
                             :items="plans"
                             @click:row="handleClick"
+                            fixed-header
+                            height="33vh"
                             >
                         </v-data-table>
                         </v-card-text>
@@ -351,7 +353,7 @@ function degreesToRadians(degrees) {
 						}
 						wkts.push('POINT('+x+' '+y+')');
 						//'POINT(196062.48 621458.39)'
-						//console.log(x + " " + y);
+						////console.log(x + " " + y);
 					}
 					
 					var data = {	  
@@ -371,7 +373,7 @@ function degreesToRadians(degrees) {
 					};  
 					govmap.displayGeometries(data).then(function (e)  
 					{ 
-						console.log("points created");
+						//console.log("points created");
 					});
 				}
 				if (geoJson.features[0].geometry.type == "LineString")
@@ -403,7 +405,7 @@ function degreesToRadians(degrees) {
 						wkts.push(linestring_r);
 						//LINESTRING(181638.5702018566 691584.9075372377, 230586.58476455236 683382.807799705)',  
 
-						//console.log(linestring_r);
+						////console.log(linestring_r);
 					}
 					
 					var data = {	  
@@ -422,7 +424,7 @@ function degreesToRadians(degrees) {
 					};  
 					govmap.displayGeometries(data).then(function (e)  
 					{ 
-						console.log("points created");
+						//console.log("points created");
 					});
 				}
 				if (geoJson.features[0].geometry.type == "Polygon")
@@ -460,7 +462,7 @@ function degreesToRadians(degrees) {
 						linestring_r =linestring_r + "))";
                         linestring_r = linestring_r.replace(',))', '))')
 						wkts.push(linestring_r.replace(',))', '))'));
-                        console.log(linestring_r);
+                        //console.log(linestring_r);
 
                         govmap.clearDrawings();
                         
@@ -486,7 +488,7 @@ function degreesToRadians(degrees) {
 					};  
 					govmap.displayGeometries(data).then(function (e)  
 					{ 
-						console.log("layer created");
+						//console.log("layer created");
                     });
                     
 				}
@@ -539,7 +541,7 @@ function degreesToRadians(degrees) {
           
           handleClick(value) {
               //this.highlightClickedRow(value);
-              console.log('handleClick', value);
+              //console.log('handleClick', value);
               // select feature on map
               govmap.searchInLayer({ 'layerName': 'RETZEFGVULOT', 'fieldName': 'OBJECTID', 'fieldValues': [value.oid], 'highlight': true, 'outLineColor': [255, 0, 0, 1], 'fillColor': [0, 255, 0, 0.5]});
               // set active row and deselect others
@@ -632,7 +634,7 @@ function degreesToRadians(degrees) {
                     myVue.table_key = 0;
                     var wkt = response.wkt;
                     myVue.wkt = wkt;
-                    console.log(wkt);
+                    //console.log(wkt);
                     myVue.getPlans(wkt);
                 });
             },
@@ -653,7 +655,7 @@ function degreesToRadians(degrees) {
                 govmap.setVisibleLayers([], ['RETZEFGVULOT']);
             
                 const planData = await govmap.intersectFeatures(params);
-                console.log(planData);
+                //console.log(planData);
 
                 
                 
@@ -686,11 +688,11 @@ function degreesToRadians(degrees) {
                             retzefdate: retzefdate.split('T', 1)[0]
 
                         }
-                        console.log(taarihtokef);
+                        //console.log(taarihtokef);
                         this.plans.push(obj);
                     }
                     myVue.oid_string = myVue.oid_string.substring(0, this.oid_string.length - 1);
-                    console.log(myVue.oid_string)
+                    //console.log(myVue.oid_string)
                     if (myVue.oid_string != ""){
                         var params ={ 
                             layerName: 'RETZEFGVULOT',
@@ -714,7 +716,7 @@ function degreesToRadians(degrees) {
 
             // get the current navigator url
             var url = window.location.href;
-            console.log(url);
+            //console.log(url);
             if (url.startsWith('https://yovavsanders.github.io/') || url.startsWith('yovavsanders.github.io/')){
               this.token = "aafedfe5-8dfa-4fd5-9af9-8b95759447bd";
             }
