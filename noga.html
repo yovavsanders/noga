@@ -89,7 +89,7 @@
             </v-col>
 
 
-            <v-app-bar-nav-icon v-if="isMobile()" style="text-align: center; margin-top: 5px;"></v-app-bar-nav-icon>
+            <v-app-bar-nav-icon  @click.stop="drawer = !drawer" v-if="isMobile()" style="text-align: center; margin-top: 5px;"></v-app-bar-nav-icon>
             <v-toolbar-title v-if="!isMobile()" style="text-align: center; width:50%; margin-top: 18px;">נגה - בדיקת תכניות לפי תיחום</v-toolbar-title>
             <v-card-subtitle v-if="isMobile()" style="text-align: center; margin-top: 5px;">נגה - בדיקת תכניות לפי תיחום</v-card-subtitle>
            
@@ -191,6 +191,33 @@
         >
             {{feat_added_cnt}}  ישויות נוספו בהצלחה
         </v-snackbar>
+
+        <v-navigation-drawer
+        v-model="drawer"
+        absolute
+        right
+        temporary
+      >
+        <v-list
+          nav
+          dense
+        >
+          <v-list-item-group
+            v-model="group"
+            active-class="blue--text text--accent-4"
+          >
+            <v-list-item>
+              <v-list-item-title @click="drawPolygon()">שרטט פוליגון
+              </v-list-item-title>
+            </v-list-item>
+  
+            <v-list-item>
+              <v-list-item-title @click="addLayer()" >הוספת שכבת משתמש (פורמט Shp.Zip)
+              </v-list-item-title>
+            </v-list-item>
+          </v-list-item-group>
+        </v-list>
+      </v-navigation-drawer>
 
         </v-container>
       </v-main>
@@ -478,6 +505,8 @@ function degreesToRadians(degrees) {
         vuetify: new Vuetify(),
 
         data: () => ({
+            drawer: false,
+            group: null,
             token: "5a4b8472-b95b-4687-8179-0ccb621c7990",
             headers: [
                 { text: 'מספר סידורי', value: 'id' },
@@ -499,6 +528,12 @@ function degreesToRadians(degrees) {
             table_key: 0,
             oid_string: "",
         }),
+
+        watch: {
+          group () {
+            this.drawer = false
+          },
+        },
 
         methods: {
           
