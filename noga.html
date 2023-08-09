@@ -35,7 +35,7 @@
         elevation="4"
     >
        <v-row>
-            <v-col >
+            <v-col  v-if="!isMobile()">
                 <v-tooltip bottom>
                     <template v-slot:activator="{ on, attrs }">
                         <v-btn
@@ -56,7 +56,7 @@
                     <span>שרטט פוליגון</span>
                 </v-tooltip>
 
-                <v-tooltip>
+                <v-tooltip bottom>
                     <template v-slot:activator="{ on, attrs }">
                     <v-btn  v-on="on"
                       @click="addLayer()" 
@@ -75,7 +75,11 @@
                 </v-tooltip>
             </v-col>
 
-            <v-toolbar-title style="text-align: center; width:50%; margin-top: 18px;">נגה - בדיקת תכניות לפי תיחום</v-toolbar-title>
+
+            <v-app-bar-nav-icon v-if="isMobile()" style="text-align: center; margin-top: 5px;"></v-app-bar-nav-icon>
+            <v-toolbar-title v-if="!isMobile()" style="text-align: center; width:50%; margin-top: 18px;">נגה - בדיקת תכניות לפי תיחום</v-toolbar-title>
+            <v-card-subtitle v-if="isMobile()" style="text-align: center; margin-top: 5px;">נגה - בדיקת תכניות לפי תיחום</v-card-subtitle>
+           
 
 
             <v-col >
@@ -385,7 +389,7 @@ function degreesToRadians(degrees) {
 				}
 				if (geoJson.features[0].geometry.type == "Polygon")
 				{
-                    myVue.table_key = 0;
+                    //myVue.table_key = 0;
 					for (i = 0; i < geoJson.features.length; i++)
 					{
 						var parts = geoJson.features[i].geometry.coordinates;
@@ -419,6 +423,8 @@ function degreesToRadians(degrees) {
                         linestring_r = linestring_r.replace(',))', '))')
 						wkts.push(linestring_r.replace(',))', '))'));
                         console.log(linestring_r);
+
+                        govmap.clearDrawings();
                         
                         myVue.getPlans(linestring_r);
                        
@@ -461,6 +467,7 @@ function degreesToRadians(degrees) {
         vuetify: new Vuetify(),
 
         data: () => ({
+            token: "5a4b8472-b95b-4687-8179-0ccb621c7990",
             headers: [
                 { text: 'מספר רץ', value: 'id' },
                 { text: 'מספר מזהה', value: 'oid' },
@@ -476,6 +483,10 @@ function degreesToRadians(degrees) {
         }),
 
         methods: {
+
+            isMobile(){
+                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            },
 
             addToMap()
             {
@@ -574,9 +585,16 @@ function degreesToRadians(degrees) {
             
         },
         mounted() {
+
+            // get the current navigator url
+            var url = window.location.href;
+            console.log(url);
+            if (url.startsWith('https://yovavsanders.github.io/') || url.startsWith('yovavsanders.github.io/')){
+              this.token = "aafedfe5-8dfa-4fd5-9af9-8b95759447bd";
+            }
             govmap.createMap('map', 
                 {
-                    token: '5a4b8472-b95b-4687-8179-0ccb621c7990',
+                    token: this.token,
                     layers: ["RETZEFGVULOT"],
                     showXY: true,
                     identifyOnClick: true,
