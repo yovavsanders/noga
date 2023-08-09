@@ -24,10 +24,23 @@
     <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+
+    <style>
+
+      [v-cloak] {
+                  display: none;
+              }
+      
+        tr.v-data-table__selected {
+                background: #A7FFEB!important;
+              }
+    </style>
+
+
 </head>
 
 <body scrolling='no' dir="rtl">
-  <div id="app">
+  <div id="app" v-cloak>
     <v-app>
       <v-main>
         
@@ -106,36 +119,34 @@
                 <v-col id="2" cols="12"  xs="12" sm="12" md="12" style="max-height: 750px;">
                         <v-card style="background-color: #ffffff !important;
                         border: 5px solid #01579B !important; margin-bottom:25px; margin: 25px;" id = "table">
-                        <v-card-title>תכניות בתיחום</v-card-title>
+                        <v-card-title>תכניות בתיחום
+                        <v-spacer></v-spacer>
+                        
+
+                        <v-tooltip top>
+                        <template  v-slot:activator="{ on, attrs }">
+ 
+                          <v-icon color="green darken-2" 
+                          v-on="on"
+                          @click="downloadExcel()"
+                          v-bind="attrs"
+                          v-on="on">
+                            mdi-microsoft-excel
+                          </v-icon>
+           
+                        </template>
+                        <span>יצוא טבלה</span>
+                        </v-tooltip>
+                        
+                        </v-card-title>
                         <v-card-text style="max-height: 510px; overflow-y: auto;">
                             <v-data-table
+                            style="cursor: pointer"
                             :headers="headers"
                             :items="plans"
-                            class="sticky-table"
+                            @click:row="handleClick"
                             >
-                            </v-data-table>
-                            <template v-slot:top>
-                                <thead>
-                                  <tr>
-                                    <th
-                                      v-for="header in headers"
-                                      :key="header.text"
-                                      class="sticky-header"
-                                    >
-                                      {{ header.text }}
-                                    </th>
-                                  </tr>
-                                </thead>
-                              </template>
-                              <template v-slot:footer>
-                                <tfoot>
-                                  <tr>
-                                    <td colspan="6" class="sticky-footer">
-                                      Footer content
-                                    </td>
-                                  </tr>
-                                </tfoot>
-                              </template>
+                        </v-data-table>
                         </v-card-text>
                     </v-card>
 
@@ -483,6 +494,66 @@ function degreesToRadians(degrees) {
         }),
 
         methods: {
+          handleClick(value) {
+              //this.highlightClickedRow(value);
+              console.log('handleClick', value);
+              // select feature on map
+              govmap.searchInLayer({ 'layerName': 'RETZEFGVULOT', 'fieldName': 'OBJECTID', 'fieldValues': [value.oid], 'highlight': true, 'outLineColor': [255, 0, 0, 1], 'fillColor': [0, 255, 0, 0.5]});
+              // set active row and deselect others
+          },
+          highlightClickedRow(value) {
+            console.log(value);
+              const tr = value.target.parentNode;
+              tr.classList.add('highlight');
+          },
+          downloadExcel() {
+              var col = [];
+              for(var i = 0; i < this.plans.length; i++) {
+                for(var key in this.plans[i]) {
+                  if(col.indexOf(key) === -1) {
+                    col.push(key);
+                  }
+                }
+              }
+              var table = document.createElement("table");
+              var tr = table.insertRow(-1); // TABLE ROW.
+              for(var i = 0; i < col.length; i++) {
+                var th = document.createElement("th"); // TABLE HEADER.
+                th.innerHTML = col[i];
+                tr.appendChild(th);
+              }
+              // ADD JSON DATA TO THE TABLE AS ROWS.
+              for(var i = 0; i < this.plans.length; i++) {
+                tr = table.insertRow(-1);
+                for(var j = 0; j < col.length; j++) {
+                  var tabCell = tr.insertCell(-1);
+                  tabCell.innerHTML = this.plans[i][col[j]];
+                }
+              }
+              var tab_text = "<table><tr>";
+              var textRange;
+              var j = 0;
+              var tab = table;
+              for(j = 0; j < tab.rows.length; j++) {
+                tab_text = tab_text + tab.rows[j].innerHTML + "</tr>";
+              }
+              tab_text = tab_text + "</table>";
+              tab_text = tab_text.replace(/<A[^>]*>|<\/A>/g, ""); //remove if u want links in your table
+              tab_text = tab_text.replace(/<img[^>]*>/gi, ""); // remove if u want images in your table
+              tab_text = tab_text.replace(/<input[^>]*>|<\/input>/gi, ""); // reomves input params
+              var ua = window.navigator.userAgent;
+              var msie = ua.indexOf("MSIE ");
+              if(msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./)) // If Internet Explorer
+              {
+                txtArea1.document.open("txt/html", "replace");
+                txtArea1.document.write(tab_text);
+                txtArea1.document.close();
+                txtArea1.focus();
+                sa = txtArea1.document.execCommand("SaveAs", true, "Say Thanks to Sumit.xls");
+              } else //other browser not tested on IE 11
+                sa = window.open('data:application/vnd.ms-excel,' + encodeURIComponent(tab_text));
+              return(sa);
+            },
 
             isMobile(){
                 return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
