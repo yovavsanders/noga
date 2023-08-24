@@ -640,6 +640,7 @@ function degreesToRadians(degrees) {
             },
 
             async getPlans(wkt){
+		myVue.plans = [];
                 var params ={ 
                             layerName: 'RETZEFGVULOT',
                             whereClause: 'OBJECTID > 0',
@@ -706,6 +707,12 @@ function degreesToRadians(degrees) {
                 else{
                     myVue.plans = [];
                     myVue.table_key = 0;
+		    var params ={ 
+                            layerName: 'RETZEFGVULOT',
+                            whereClause: 'OBJECTID < 0',
+                            zoomToExtent: false 
+                    }
+		    govmap.filterLayers(params); 
                 }
                
 
